@@ -26,9 +26,7 @@ import (
 	"sync/atomic"
 )
 
-// Handle registration check attempt by node. We assume
-//
-//	the code being searched for is the node's.
+// Handle registration check attempt by node. We assume the code being searched for is the node's.
 func (m *RegistrationImpl) CheckNodeRegistration(msg *mixmessages.RegisteredNodeCheck) (bool, error) {
 	//do edge check to ensure the message is not nil
 	if msg == nil {
@@ -205,9 +203,7 @@ func (m *RegistrationImpl) LoadAllRegisteredNodes() ([]*connect.Host, error) {
 }
 
 // Handles including new registrations in the network
-// fixme: we should split this function into what is relevant to registering a  node and what is relevant
-//
-//	to permissioning
+// fixme: we should split this function into what is relevant to registering a  node and what is relevant to permissioning
 func (m *RegistrationImpl) completeNodeRegistration(regCode string) error {
 
 	m.registrationLock.Lock()
