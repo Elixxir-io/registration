@@ -11,14 +11,13 @@ package cmd
 
 import (
 	"bytes"
-	gorsa "crypto/rsa"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/rsa"
 	"gitlab.com/elixxir/registration/storage"
 	"gitlab.com/elixxir/registration/storage/node"
 	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/tls"
 	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
@@ -28,7 +27,8 @@ import (
 )
 
 // Handle registration check attempt by node. We assume
-//  the code being searched for is the node's.
+//
+//	the code being searched for is the node's.
 func (m *RegistrationImpl) CheckNodeRegistration(msg *mixmessages.RegisteredNodeCheck) (bool, error) {
 	//do edge check to ensure the message is not nil
 	if msg == nil {
@@ -68,6 +68,10 @@ var curNodeRegPtr = &curNodeReg
 func (m *RegistrationImpl) RegisterNode(salt []byte, serverAddr, serverTlsCert, gatewayAddr,
 	gatewayTlsCert, registrationCode string) error {
 
+	if len(salt) > 32 {
+		salt = salt[:32]
+	}
+
 	// If disableRegCodes is set, we atomically increase curNodeReg and use the previous code in the sequence
 	if disableRegCodes {
 		regNum := atomic.AddUint32(curNodeRegPtr, 1)
@@ -86,10 +90,15 @@ func (m *RegistrationImpl) RegisterNode(salt []byte, serverAddr, serverTlsCert, 
 	if err != nil {
 		return errors.Errorf("Could not decode server certificate into a tls cert: %v", err)
 	}
-	nodePubKey := &rsa.PublicKey{PublicKey: *tlsCert.PublicKey.(*gorsa.PublicKey)}
-	if len(salt) > 32 {
-		salt = salt[:32]
+
+	// Extract public key
+	nodePubKeyOld, err := tls.ExtractPublicKey(tlsCert)
+	if err != nil {
+		return errors.Errorf("Unable to load node's public key: %v", err)
 	}
+
+	nodePubKey := rsa.GetScheme().ConvertPublic(&nodePubKeyOld.PublicKey)
+
 	nodeId, err := xx.NewID(nodePubKey, salt, id.Node)
 	if err != nil {
 		return errors.Errorf("Unable to generate Node ID with salt %v: %+v", salt, err)
@@ -197,7 +206,8 @@ func (m *RegistrationImpl) LoadAllRegisteredNodes() ([]*connect.Host, error) {
 
 // Handles including new registrations in the network
 // fixme: we should split this function into what is relevant to registering a  node and what is relevant
-//  to permissioning
+//
+//	to permissioning
 func (m *RegistrationImpl) completeNodeRegistration(regCode string) error {
 
 	m.registrationLock.Lock()

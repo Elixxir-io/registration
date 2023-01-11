@@ -256,7 +256,22 @@ func TestNetworkState_AddRoundUpdate(t *testing.T) {
 // Tests that UpdateNdf() updates fullNdf and partialNdf correctly.
 func TestNetworkState_UpdateNdf(t *testing.T) {
 	// Expected values
-	testNDF := &ndf.NetworkDefinition{}
+	testNDF := &ndf.NetworkDefinition{
+		Gateways: []ndf.Gateway{
+			{
+				ID:             id.NewIdFromUInt(1, id.Gateway, t).Bytes(),
+				Address:        "1.2.3.4",
+				TlsCertificate: "",
+				Bin:            0,
+			},
+			{
+				ID:             id.NewIdFromUInt(2, id.Gateway, t).Bytes(),
+				Address:        "1.2.3.4",
+				TlsCertificate: "",
+				Bin:            0,
+			},
+		},
+	}
 
 	// Generate new NetworkState
 	state, _, err := generateTestNetworkState()
@@ -297,6 +312,8 @@ func TestNetworkState_UpdateNdf(t *testing.T) {
 		t.Errorf("UpdateNdf() saved the wrong NDF partialNdf."+
 			"\n\texpected: %#v\n\treceived: %#v", *testNDF, *state.partialNdf.Get())
 	}
+
+	t.Logf("%v", state.partialNdf.Get())
 }
 
 // Tests that UpdateNdf() generates an error when injected with invalid private
